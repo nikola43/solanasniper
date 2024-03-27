@@ -23,21 +23,21 @@ class RaydiumSwap {
   connection: Connection
   wallet: Wallet
 
-    /**
-   * Create a RaydiumSwap instance.
-   * @param {string} RPC_URL - The RPC URL for connecting to the Solana blockchain.
-   * @param {string} WALLET_PRIVATE_KEY - The private key of the wallet in base58 format.
-   */
+  /**
+ * Create a RaydiumSwap instance.
+ * @param {string} RPC_URL - The RPC URL for connecting to the Solana blockchain.
+ * @param {string} WALLET_PRIVATE_KEY - The private key of the wallet in base58 format.
+ */
   constructor(connection: Connection, WALLET_PRIVATE_KEY: string) {
     this.connection = connection
     this.wallet = new Wallet(Keypair.fromSecretKey(Uint8Array.from(bs58.decode(WALLET_PRIVATE_KEY))))
   }
 
-   /**
-   * Loads all the pool keys available from a JSON configuration file.
-   * @async
-   * @returns {Promise<void>}
-   */
+  /**
+  * Loads all the pool keys available from a JSON configuration file.
+  * @async
+  * @returns {Promise<void>}
+  */
   async loadPoolKeys(liquidityFile: string) {
     // measure time
     const initDate = new Date()
@@ -64,12 +64,12 @@ class RaydiumSwap {
   }
   */
 
-    /**
-   * Finds pool information for the given token pair.
-   * @param {string} mintA - The mint address of the first token.
-   * @param {string} mintB - The mint address of the second token.
-   * @returns {LiquidityPoolKeys | null} The liquidity pool keys if found, otherwise null.
-   */
+  /**
+ * Finds pool information for the given token pair.
+ * @param {string} mintA - The mint address of the first token.
+ * @param {string} mintB - The mint address of the second token.
+ * @returns {LiquidityPoolKeys | null} The liquidity pool keys if found, otherwise null.
+ */
   findPoolInfoForTokens(mintA: string, mintB: string) {
     const poolData = this.allPoolKeysJson.find(
       (i) => (i.baseMint === mintA && i.quoteMint === mintB) || (i.baseMint === mintB && i.quoteMint === mintA)
@@ -80,11 +80,11 @@ class RaydiumSwap {
     return jsonInfo2PoolKeys(poolData) as LiquidityPoolKeys
   }
 
-    /**
-   * Retrieves token accounts owned by the wallet.
-   * @async
-   * @returns {Promise<TokenAccount[]>} An array of token accounts.
-   */
+  /**
+ * Retrieves token accounts owned by the wallet.
+ * @async
+ * @returns {Promise<TokenAccount[]>} An array of token accounts.
+ */
   async getOwnerTokenAccounts() {
     const walletTokenAccount = await this.connection.getTokenAccountsByOwner(this.wallet.publicKey, {
       programId: TOKEN_PROGRAM_ID,
@@ -97,17 +97,17 @@ class RaydiumSwap {
     }))
   }
 
-    /**
-   * Builds a swap transaction.
-   * @async
-   * @param {string} toToken - The mint address of the token to receive.
-   * @param {number} amount - The amount of the token to swap.
-   * @param {LiquidityPoolKeys} poolKeys - The liquidity pool keys.
-   * @param {number} [maxLamports=100000] - The maximum lamports to use for transaction fees.
-   * @param {boolean} [useVersionedTransaction=true] - Whether to use a versioned transaction.
-   * @param {'in' | 'out'} [fixedSide='in'] - The fixed side of the swap ('in' or 'out').
-   * @returns {Promise<Transaction | VersionedTransaction>} The constructed swap transaction.
-   */
+  /**
+ * Builds a swap transaction.
+ * @async
+ * @param {string} toToken - The mint address of the token to receive.
+ * @param {number} amount - The amount of the token to swap.
+ * @param {LiquidityPoolKeys} poolKeys - The liquidity pool keys.
+ * @param {number} [maxLamports=100000] - The maximum lamports to use for transaction fees.
+ * @param {boolean} [useVersionedTransaction=true] - Whether to use a versioned transaction.
+ * @param {'in' | 'out'} [fixedSide='in'] - The fixed side of the swap ('in' or 'out').
+ * @returns {Promise<Transaction | VersionedTransaction>} The constructed swap transaction.
+ */
   async getSwapTransaction(
     toToken: string,
     // fromToken: string,
@@ -171,12 +171,12 @@ class RaydiumSwap {
     return legacyTransaction
   }
 
-    /**
-   * Sends a legacy transaction.
-   * @async
-   * @param {Transaction} tx - The transaction to send.
-   * @returns {Promise<string>} The transaction ID.
-   */
+  /**
+ * Sends a legacy transaction.
+ * @async
+ * @param {Transaction} tx - The transaction to send.
+ * @returns {Promise<string>} The transaction ID.
+ */
   async sendLegacyTransaction(tx: Transaction, maxRetries?: number) {
     const txid = await this.connection.sendTransaction(tx, [this.wallet.payer], {
       skipPreflight: true,
@@ -186,12 +186,12 @@ class RaydiumSwap {
     return txid
   }
 
-    /**
-   * Sends a versioned transaction.
-   * @async
-   * @param {VersionedTransaction} tx - The versioned transaction to send.
-   * @returns {Promise<string>} The transaction ID.
-   */
+  /**
+ * Sends a versioned transaction.
+ * @async
+ * @param {VersionedTransaction} tx - The versioned transaction to send.
+ * @returns {Promise<string>} The transaction ID.
+ */
   async sendVersionedTransaction(tx: VersionedTransaction, maxRetries?: number) {
     const txid = await this.connection.sendTransaction(tx, {
       skipPreflight: true,
@@ -201,35 +201,35 @@ class RaydiumSwap {
     return txid
   }
 
- /**
-   * Simulates a versioned transaction.
-   * @async
-   * @param {VersionedTransaction} tx - The versioned transaction to simulate.
-   * @returns {Promise<any>} The simulation result.
-   */
+  /**
+    * Simulates a versioned transaction.
+    * @async
+    * @param {VersionedTransaction} tx - The versioned transaction to simulate.
+    * @returns {Promise<any>} The simulation result.
+    */
   async simulateLegacyTransaction(tx: Transaction) {
     const txid = await this.connection.simulateTransaction(tx, [this.wallet.payer])
 
     return txid
   }
 
-    /**
-   * Simulates a versioned transaction.
-   * @async
-   * @param {VersionedTransaction} tx - The versioned transaction to simulate.
-   * @returns {Promise<any>} The simulation result.
-   */
+  /**
+ * Simulates a versioned transaction.
+ * @async
+ * @param {VersionedTransaction} tx - The versioned transaction to simulate.
+ * @returns {Promise<any>} The simulation result.
+ */
   async simulateVersionedTransaction(tx: VersionedTransaction) {
     const txid = await this.connection.simulateTransaction(tx)
 
     return txid
   }
 
-    /**
-   * Gets a token account by owner and mint address.
-   * @param {PublicKey} mint - The mint address of the token.
-   * @returns {TokenAccount} The token account.
-   */
+  /**
+ * Gets a token account by owner and mint address.
+ * @param {PublicKey} mint - The mint address of the token.
+ * @returns {TokenAccount} The token account.
+ */
   getTokenAccountByOwnerAndMint(mint: PublicKey) {
     return {
       programId: TOKEN_PROGRAM_ID,
@@ -241,14 +241,14 @@ class RaydiumSwap {
     } as unknown as TokenAccount
   }
 
-    /**
-   * Calculates the amount out for a swap.
-   * @async
-   * @param {LiquidityPoolKeys} poolKeys - The liquidity pool keys.
-   * @param {number} rawAmountIn - The raw amount of the input token.
-   * @param {boolean} swapInDirection - The direction of the swap (true for in, false for out).
-   * @returns {Promise<Object>} The swap calculation result.
-   */
+  /**
+ * Calculates the amount out for a swap.
+ * @async
+ * @param {LiquidityPoolKeys} poolKeys - The liquidity pool keys.
+ * @param {number} rawAmountIn - The raw amount of the input token.
+ * @param {boolean} swapInDirection - The direction of the swap (true for in, false for out).
+ * @returns {Promise<Object>} The swap calculation result.
+ */
   async calcAmountOut(poolKeys: LiquidityPoolKeys, rawAmountIn: number, swapInDirection: boolean) {
     const poolInfo = await Liquidity.fetchInfo({ connection: this.connection, poolKeys })
 
@@ -267,7 +267,7 @@ class RaydiumSwap {
     const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
     const amountIn = new TokenAmount(currencyIn, rawAmountIn, false)
     const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
-    const slippage = new Percent(10, 100) // 5% slippage
+    const slippage = new Percent(90, 100) // 5% slippage
 
     const { amountOut, minAmountOut, currentPrice, executionPrice, priceImpact, fee } = Liquidity.computeAmountOut({
       poolKeys,

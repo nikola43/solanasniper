@@ -25,17 +25,24 @@ import { createPoolKeys, getTokenAccounts } from "./liquidity";
 import { MinimalMarketLayoutV3 } from "./market";
 const COMMITMENT_LEVEL = 'confirmed';
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9); // Random unique identifier for your session
-const HTTP_RPC = "https://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
-const WS_RPC = "wss://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
-//const HTTP_RPC = "https://solana-mainnet.core.chainstack.com/444a9722c51931fbf1f90e396ce78229";
-//const WS_RPC = "wss://solana-mainnet.core.chainstack.com/ws/444a9722c51931fbf1f90e396ce78229";
-let connection = new Connection(HTTP_RPC, {
-    wsEndpoint: WS_RPC,
-    httpHeaders: { "x-session-hash": SESSION_HASH }
-});
+// const HTTP_RPC = "https://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
+// const WS_RPC = "wss://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
+// const HTTP_RPC = "https://solana-mainnet.core.chainstack.com/444a9722c51931fbf1f90e396ce78229";
+// const WS_RPC = "wss://solana-mainnet.core.chainstack.com/ws/444a9722c51931fbf1f90e396ce78229";
+// const HTTP_RPC = "https://go.getblock.io/7b03a7b0a0504f0c85fc7b4e0f964a2e";
+// const WS_RPC = "wss://go.getblock.io/4303487ead6e4910a59442ebcf41ca90";
+// const HTTP_RPC = "https://solana-mainnet.g.alchemy.com/v2/t6NM_t_FBM1RuEDylICqYjfaqLESjUPN";
+// const WS_RPC = "wss://solana-mainnet.g.alchemy.com/v2/t6NM_t_FBM1RuEDylICqYjfaqLESjUPN";
+//const HTTP_RPC = "https://mainnet.helius-rpc.com/?api-key=e26bf879-6bb4-49c0-aafa-8e4d86687455";
+const HTTP_RPC = "https://rpc.shyft.to?api_key=tbe9OcyS6qotgfHw";
+ let connection = new Connection(HTTP_RPC);
+
+// let connection = new Connection(HTTP_RPC, {
+//     wsEndpoint: WS_RPC,
+//     httpHeaders: { "x-session-hash": SESSION_HASH }
+// });
 const raydiumSwap = new RaydiumSwap(connection, process.env.WALLET_PRIVATE_KEY);
 
-connection = new Connection(RPC_ENDPOINT);
 
 const seenTransactions: Array<string> = []; // The log listener is sometimes triggered multiple times for a single transaction, don't react to tranasctions we've already seen
 
@@ -150,16 +157,16 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
     console.log("Processing pool", id.toString());
     console.log("Pool state", poolState);
 
-    const tokenAccounts = await getTokenAccounts(connection, raydiumSwap.wallet.publicKey, COMMITMENT_LEVEL);
-    for (const ta of tokenAccounts) {
-        existingTokenAccounts.set(ta.accountInfo.mint.toString(), <MinimalTokenAccountData>{
-            mint: ta.accountInfo.mint,
-            address: ta.pubkey,
-        });
-    }
+    // const tokenAccounts = await getTokenAccounts(connection, raydiumSwap.wallet.publicKey, COMMITMENT_LEVEL);
+    // for (const ta of tokenAccounts) {
+    //     existingTokenAccounts.set(ta.accountInfo.mint.toString(), <MinimalTokenAccountData>{
+    //         mint: ta.accountInfo.mint,
+    //         address: ta.pubkey,
+    //     });
+    // }
 
 
-    let tokenAccount = existingTokenAccounts.get(poolState.baseMint.toString());
+    // let tokenAccount = existingTokenAccounts.get(poolState.baseMint.toString());
     const marketInfo = await fetchMarketInfo(poolState.marketId);
 
     //const inputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenAAccount.toBase58() : tokens.tokenBAccount.toBase58();
@@ -167,9 +174,9 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
 
 
     const swapConfig = {
-        executeSwap: true, // Send tx when true, simulate tx when false
+        executeSwap: false, // Send tx when true, simulate tx when false
         useVersionedTransaction: true,
-        tokenAAmount: 0.0056, // Swap 0.01 SOL for USDT in this example
+        tokenAAmount: 0.001, // Swap 0.01 SOL for USDT in this example
         tokenAAddress: poolState.quoteMint.toBase58(), // Token to swap for the other, SOL in this case
         tokenBAddress: poolState.baseMint.toBase58(), // USDC address
         maxLamports: 1500000, // Micro lamports for priority fee
