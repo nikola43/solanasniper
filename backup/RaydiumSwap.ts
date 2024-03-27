@@ -28,8 +28,9 @@ class RaydiumSwap {
    * @param {string} RPC_URL - The RPC URL for connecting to the Solana blockchain.
    * @param {string} WALLET_PRIVATE_KEY - The private key of the wallet in base58 format.
    */
-  constructor(connection: Connection, WALLET_PRIVATE_KEY: string) {
-    this.connection = connection
+  constructor(RPC_URL: string, WALLET_PRIVATE_KEY: string) {
+    this.connection = new Connection(RPC_URL
+      , { commitment: 'confirmed' })
     this.wallet = new Wallet(Keypair.fromSecretKey(Uint8Array.from(bs58.decode(WALLET_PRIVATE_KEY))))
   }
 
@@ -120,7 +121,7 @@ class RaydiumSwap {
     //console.log({ poolKeys });
     const directionIn = poolKeys.quoteMint.toString() == toToken
     const { minAmountOut, amountIn } = await this.calcAmountOut(poolKeys, amount, directionIn)
-    console.log({ minAmountOut, amountIn });
+    //console.log({ minAmountOut, amountIn });
     const userTokenAccounts = await this.getOwnerTokenAccounts()
     const swapTransaction = await Liquidity.makeSwapInstructionSimple({
       connection: this.connection,
@@ -267,7 +268,7 @@ class RaydiumSwap {
     const currencyIn = new Token(TOKEN_PROGRAM_ID, currencyInMint, currencyInDecimals)
     const amountIn = new TokenAmount(currencyIn, rawAmountIn, false)
     const currencyOut = new Token(TOKEN_PROGRAM_ID, currencyOutMint, currencyOutDecimals)
-    const slippage = new Percent(0, 100) // 5% slippage
+    const slippage = new Percent(45, 100) // 5% slippage
 
     const { amountOut, minAmountOut, currentPrice, executionPrice, priceImpact, fee } = Liquidity.computeAmountOut({
       poolKeys,

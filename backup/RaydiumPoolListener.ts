@@ -1,13 +1,12 @@
-import { LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market, TOKEN_PROGRAM_ID, Token, TokenAmount } from "@raydium-io/raydium-sdk";
+import { LiquidityPoolKeysV4, MARKET_STATE_LAYOUT_V3, Market, TOKEN_PROGRAM_ID } from "@raydium-io/raydium-sdk";
 import { Connection, Logs, ParsedInnerInstruction, ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from "@solana/web3.js";
-import RaydiumSwap from './RaydiumSwap';
+
 let RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
 const RAYDIUM_POOL_V4_PROGRAM_ID = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
 const SERUM_OPENBOOK_PROGRAM_ID = 'srmqPvymJeFKQ4zGQed1GFppgkRHL9kaELCbyksJtPX';
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const SOL_DECIMALS = 9;
-require('dotenv').config()
-import { logger } from './utils';
+
 
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9); // Random unique identifier for your session
 //const HTTP_URL = "https://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
@@ -25,78 +24,8 @@ const seenTransactions: Array<string> = []; // The log listener is sometimes tri
 
 subscribeToNewRaydiumPools();
 
-let quoteMinPoolSizeAmount: TokenAmount;
-let quoteToken = Token.WSOL;
-
-quoteMinPoolSizeAmount = new TokenAmount(quoteToken, 1, false);
 
 
-const swap = async (swapConfig) => {
-    /**
-     * The RaydiumSwap instance for handling swaps.
-     */
-    const raydiumSwap = new RaydiumSwap(connection, process.env.WALLET_PRIVATE_KEY);
-    console.log(`Raydium swap initialized`);
-    console.log(`Swapping ${swapConfig.tokenAAmount} of ${swapConfig.tokenAAddress} for ${swapConfig.tokenBAddress}...`)
-
-    /**
-     * Load pool keys from the Raydium API to enable finding pool information.
-     */
-    // await raydiumSwap.loadPoolKeys(swapConfig.liquidityFile);
-    // console.log(`Loaded pool keys`);
-
-    /**
-     * Find pool information for the given token pair.
-     */
-    // const poolInfo = raydiumSwap.findPoolInfoForTokens(swapConfig.tokenAAddress, swapConfig.tokenBAddress);
-    // const poolInfo2 = swapConfig.poolInfo;
-    // console.log('Found pool info');
-    // console.log("poolInfo");
-    // console.log({
-    //     poolInfo,
-    //     poolInfo2
-    // });
-
-    /**
-     * Prepare the swap transaction with the given parameters.
-     */
-    const tx = await raydiumSwap.getSwapTransaction(
-        swapConfig.tokenBAddress,
-        swapConfig.tokenAAmount,
-        swapConfig.poolInfo,
-        swapConfig.maxLamports,
-        swapConfig.useVersionedTransaction,
-        swapConfig.direction
-    );
-
-    /**
-     * Depending on the configuration, execute or simulate the swap.
-     */
-    if (swapConfig.executeSwap) {
-        /**
-         * Send the transaction to the network and log the transaction ID.
-         */
-        const txid = swapConfig.useVersionedTransaction
-            // @ts-ignore
-            ? await raydiumSwap.sendVersionedTransaction(tx as VersionedTransaction, swapConfig.maxRetries)
-            // @ts-ignore
-            : await raydiumSwap.sendLegacyTransaction(tx as Transaction, swapConfig.maxRetries);
-
-        console.log(`https://solscan.io/tx/${txid}`);
-
-    } else {
-        /**
-         * Simulate the transaction and log the result.
-         */
-        const simRes = swapConfig.useVersionedTransaction
-            // @ts-ignore
-            ? await raydiumSwap.simulateVersionedTransaction(tx as VersionedTransaction)
-            // @ts-ignore
-            : await raydiumSwap.simulateLegacyTransaction(tx as Transaction);
-
-        console.log(simRes);
-    }
-};
 
 function subscribeToNewRaydiumPools(): void {
     connection.onLogs(new PublicKey(RAYDIUM_POOL_V4_PROGRAM_ID), async (txLogs: Logs) => {
@@ -108,48 +37,9 @@ function subscribeToNewRaydiumPools(): void {
         if (!findLogEntry('init_pc_amount', txLogs.logs)) {
             return; // If "init_pc_amount" is not in log entries then it's not LP initialization transaction
         }
-
-        /*
-        if (!quoteMinPoolSizeAmount.isZero()) {
-            const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
-            logger.info(`Processing pool: ${id.toString()} with ${poolSize.toFixed()} ${quoteToken.symbol} in liquidity`);
-
-            if (poolSize.lt(quoteMinPoolSizeAmount)) {
-                logger.warn(
-                    {
-                        mint: poolState.baseMint,
-                        pooled: `${poolSize.toFixed()} ${quoteToken.symbol}`,
-                    },
-                    `Skipping pool, smaller than ${quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
-                    `Swap quote in amount: ${poolSize.toFixed()}`,
-                );
-                return;
-            }
-        }
-        */
-
         const poolKeys = await fetchPoolKeysForLPInitTransactionHash(txLogs.signature); // With poolKeys you can do a swap
 
         const tokens = await fetchRaydiumAccounts(txLogs.signature, connection);
-
-        const inputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenAAccount.toBase58() : tokens.tokenBAccount.toBase58();
-        const outputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenBAccount.toBase58() : tokens.tokenAAccount.toBase58();
-
-        const swapConfig = {
-            executeSwap: true, // Send tx when true, simulate tx when false
-            useVersionedTransaction: true,
-            tokenAAmount: 0.0056, // Swap 0.01 SOL for USDT in this example
-            tokenAAddress: inputToken, // Token to swap for the other, SOL in this case
-            tokenBAddress: outputToken, // USDC address
-            maxLamports: 1500000, // Micro lamports for priority fee
-            direction: "in" as "in" | "out", // Swap direction: 'in' or 'out'
-            maxRetries: 20,
-            poolInfo: poolKeys
-        };
-
-        swap(swapConfig);
-
-
 
         //console.log(poolKeys);
     });
@@ -190,8 +80,7 @@ async function fetchRaydiumAccounts(txId: string, connection: Connection) {
 
     const displayData = [
         { "Token": "A", "Account Public Key": tokenAAccount.toBase58() },
-        { "Token": "B", "Account Public Key": tokenBAccount.toBase58() },
-        { "Signature": "ID", txId }
+        { "Token": "B", "Account Public Key": tokenBAccount.toBase58() }
     ];
     console.log("New LP Found");
     console.log(generateExplorerUrl(txId));
