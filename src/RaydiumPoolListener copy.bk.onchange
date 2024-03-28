@@ -5,8 +5,6 @@ let RPC_ENDPOINT = 'https://api.mainnet-beta.solana.com';
 //import open, {openApp, apps} from 'open';
 
 
-
-
 export interface MinimalTokenAccountData {
     mint: PublicKey;
     address: PublicKey;
@@ -28,7 +26,6 @@ import { MintLayout } from "./types";
 import { createPoolKeys, getTokenAccounts } from "./liquidity";
 import { MinimalMarketLayoutV3, getMinimalMarketV3 } from "./market";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { getTokenMetadata } from "./metadata";
 const COMMITMENT_LEVEL = 'confirmed';
 const SESSION_HASH = 'QNDEMO' + Math.ceil(Math.random() * 1e9); // Random unique identifier for your session
 // const HTTP_RPC = "https://broken-wispy-borough.solana-mainnet.quiknode.pro/7c1eeffbf6f3531067b2a0fafdc673d5edc23e73/";
@@ -145,87 +142,77 @@ function saveTokenAccount(mint: PublicKey, accountData: MinimalMarketLayoutV3) {
 
 export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStateV4) {
 
-    const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
-    const quoteMint = poolState.quoteMint
-    const baseMint = poolState.baseMint
+    if (!quoteMinPoolSizeAmount.isZero()) {
+        const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
+        logger.info(`Processing pool: ${id.toString()} with ${poolSize.toFixed()} ${quoteToken.symbol} in liquidity`);
 
-    const tokenMetadata = await getTokenMetadata(baseMint, connection)
-    logger.info(`Processing pool: ${id.toString()} with ${poolSize.toFixed()} ${quoteToken.symbol} in liquidity`);
-    logger.info(`Token: ${tokenMetadata.symbol}  ${baseMint.toBase58()}`);
-
-    //const poolInfo = parsePoolInfoFromLpTransaction(tx);
-
-
-    /*
-// Check if pool size is larger than the minimum pool size
-if (!quoteMinPoolSizeAmount.isZero()) {
-    if (poolSize.lt(quoteMinPoolSizeAmount)) {
-        logger.warn(
-            {
-                mint: poolState.baseMint,
-                pooled: `${poolSize.toFixed()} ${quoteToken.symbol}`,
-            },
-            `Skipping pool, smaller than ${quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
-            `Swap quote in amount: ${poolSize.toFixed()}`,
-        );
-        return;
+        if (poolSize.lt(quoteMinPoolSizeAmount)) {
+            logger.warn(
+                {
+                    mint: poolState.baseMint,
+                    pooled: `${poolSize.toFixed()} ${quoteToken.symbol}`,
+                },
+                `Skipping pool, smaller than ${quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+                `Swap quote in amount: ${poolSize.toFixed()}`,
+            );
+            return;
+        }
     }
-}
 
-// if (CHECK_IF_MINT_IS_RENOUNCED) {
+    // if (CHECK_IF_MINT_IS_RENOUNCED) {
+    if (true) {
+        const mintOption = await checkMintable(poolState.baseMint);
 
-if (true) {
-    const mintOption = await checkMintable(poolState.baseMint);
-
-    if (mintOption !== true) {
-        logger.warn({ mint: poolState.baseMint }, 'Skipping, owner can mint tokens!');
-        return;
+        if (mintOption !== true) {
+            logger.warn({ mint: poolState.baseMint }, 'Skipping, owner can mint tokens!');
+            return;
+        }
     }
-}
-*/
+
+    let tokenAccount = existingTokenAccounts.get(poolState.baseMint.toString());
+    console.log("Processing pool", id.toString());
+    console.log("Pool state", poolState);
+
+    const tokenAccounts = await getTokenAccounts(connection, raydiumSwap.wallet.publicKey, COMMITMENT_LEVEL);
+    for (const ta of tokenAccounts) {
+        existingTokenAccounts.set(ta.accountInfo.mint.toString(), <MinimalTokenAccountData>{
+            mint: ta.accountInfo.mint,
+            address: ta.pubkey,
+        });
+    }
+
+    if (!tokenAccount) {
+        // it's possible that we didn't have time to fetch open book data
+        const market = await getMinimalMarketV3(connection, poolState.marketId, COMMITMENT_LEVEL);
+        tokenAccount = saveTokenAccount(poolState.baseMint, market);
+    }
+
 
     // let tokenAccount = existingTokenAccounts.get(poolState.baseMint.toString());
-    // console.log("Processing pool", id.toString());
-    // console.log("Pool state", poolState);
+    //const marketInfo = await fetchMarketInfo(poolState.marketId);
+    const poolKeys = createPoolKeys(id, poolState, tokenAccount.market!);
 
-    // const tokenAccounts = await getTokenAccounts(connection, raydiumSwap.wallet.publicKey, COMMITMENT_LEVEL);
-    // for (const ta of tokenAccounts) {
-    //     existingTokenAccounts.set(ta.accountInfo.mint.toString(), <MinimalTokenAccountData>{
-    //         mint: ta.accountInfo.mint,
-    //         address: ta.pubkey,
-    //     });
-    // }
-
-    // if (!tokenAccount) {
-    //     // it's possible that we didn't have time to fetch open book data
-    //     const market = await getMinimalMarketV3(connection, poolState.marketId, COMMITMENT_LEVEL);
-    //     tokenAccount = saveTokenAccount(poolState.baseMint, market);
-    // }
+    //const inputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenAAccount.toBase58() : tokens.tokenBAccount.toBase58();
+    //const outputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenBAccount.toBase58() : tokens.tokenAAccount.toBase58();
 
 
-    // // let tokenAccount = existingTokenAccounts.get(poolState.baseMint.toString());
-    // //const marketInfo = await fetchMarketInfo(poolState.marketId);
-    // const poolKeys = createPoolKeys(id, poolState, tokenAccount.market!);
-
-
-
-    // const swapConfig = {
-    //     executeSwap: false, // Send tx when true, simulate tx when false
-    //     useVersionedTransaction: true,
-    //     tokenAAmount: 0.01, // Swap 0.01 SOL for USDT in this example
-    //     tokenAAddress: poolState.quoteMint.toBase58(), // Token to swap for the other, SOL in this case
-    //     tokenBAddress: poolState.baseMint.toBase58(), // USDC address
-    //     maxLamports: 1500000, // Micro lamports for priority fee
-    //     direction: "in" as "in" | "out", // Swap direction: 'in' or 'out'
-    //     maxRetries: 20,
-    //     poolInfo: poolKeys
-    //     //poolInfo: createPoolKeys(id, poolState, marketInfo)
-    // };
+    const swapConfig = {
+        executeSwap: false, // Send tx when true, simulate tx when false
+        useVersionedTransaction: true,
+        tokenAAmount: 0.01, // Swap 0.01 SOL for USDT in this example
+        tokenAAddress: poolState.quoteMint.toBase58(), // Token to swap for the other, SOL in this case
+        tokenBAddress: poolState.baseMint.toBase58(), // USDC address
+        maxLamports: 1500000, // Micro lamports for priority fee
+        direction: "in" as "in" | "out", // Swap direction: 'in' or 'out'
+        maxRetries: 20,
+        poolInfo: poolKeys
+        //poolInfo: createPoolKeys(id, poolState, marketInfo)
+    };
 
     // open('https://photon-sol.tinyastro.io/en/lp/' + id.toString());
 
 
-    // swap(swapConfig);
+    swap(swapConfig);
 
 
     // await buy(id, poolState);
@@ -259,7 +246,6 @@ function subscribeToNewRaydiumPools(): void {
             const poolState = LIQUIDITY_STATE_LAYOUT_V4.decode(updatedAccountInfo.accountInfo.data);
             const poolOpenTime = parseInt(poolState.poolOpenTime.toString());
             const existing = existingLiquidityPools.has(key);
-
 
             if (poolOpenTime > runTimestamp && !existing) {
                 existingLiquidityPools.add(key);
@@ -347,43 +333,6 @@ function findLogEntry(needle: string, logEntries: Array<string>): string | null 
 }
 
 async function fetchPoolKeysForLPInitTransactionHash(txSignature: string): Promise<LiquidityPoolKeysV4> {
-    const tx = await connection.getParsedTransaction(txSignature, { maxSupportedTransactionVersion: 0 });
-    if (!tx) {
-        throw new Error('Failed to fetch transaction with signature ' + txSignature);
-    }
-    const poolInfo = parsePoolInfoFromLpTransaction(tx);
-    const marketInfo = await fetchMarketInfo(poolInfo.marketId);
-
-    return {
-        id: poolInfo.id,
-        baseMint: poolInfo.baseMint,
-        quoteMint: poolInfo.quoteMint,
-        lpMint: poolInfo.lpMint,
-        baseDecimals: poolInfo.baseDecimals,
-        quoteDecimals: poolInfo.quoteDecimals,
-        lpDecimals: poolInfo.lpDecimals,
-        version: 4,
-        programId: poolInfo.programId,
-        authority: poolInfo.authority,
-        openOrders: poolInfo.openOrders,
-        targetOrders: poolInfo.targetOrders,
-        baseVault: poolInfo.baseVault,
-        quoteVault: poolInfo.quoteVault,
-        withdrawQueue: poolInfo.withdrawQueue,
-        lpVault: poolInfo.lpVault,
-        marketVersion: 3,
-        marketProgramId: poolInfo.marketProgramId,
-        marketId: poolInfo.marketId,
-        marketAuthority: Market.getAssociatedAuthority({ programId: poolInfo.marketProgramId, marketId: poolInfo.marketId }).publicKey,
-        marketBaseVault: marketInfo.baseVault,
-        marketQuoteVault: marketInfo.quoteVault,
-        marketBids: marketInfo.bids,
-        marketAsks: marketInfo.asks,
-        marketEventQueue: marketInfo.eventQueue,
-    } as LiquidityPoolKeysV4;
-}
-
-async function fetchPoolKeysForLPInitTransactionHashV2(txSignature: string): Promise<LiquidityPoolKeysV4> {
     const tx = await connection.getParsedTransaction(txSignature, { maxSupportedTransactionVersion: 0 });
     if (!tx) {
         throw new Error('Failed to fetch transaction with signature ' + txSignature);

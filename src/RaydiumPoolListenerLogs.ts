@@ -100,15 +100,18 @@ const swap = async (swapConfig) => {
 
 function subscribeToNewRaydiumPools(): void {
     connection.onLogs(new PublicKey(RAYDIUM_POOL_V4_PROGRAM_ID), async (txLogs: Logs) => {
-        // console.log("Log entry found", new Date());
+        console.log("Log entry found", new Date());
         if (seenTransactions.includes(txLogs.signature)) {
             return;
         }
         seenTransactions.push(txLogs.signature);
-        //if (!findLogEntry('init_pc_amount', txLogs.logs)) {
-        if (!findLogEntry('initialize2', txLogs.logs)) {
+        //if (!findLogEntry('initialize2', txLogs.logs)) {
+        if (!findLogEntry('init_pc_amount', txLogs.logs)) {
             return; // If "init_pc_amount" is not in log entries then it's not LP initialization transaction
         }
+        console.log("New LP Found");
+        console.log(txLogs.signature);
+        return
 
         /*
         if (!quoteMinPoolSizeAmount.isZero()) {
@@ -134,22 +137,22 @@ function subscribeToNewRaydiumPools(): void {
         const tokens = await fetchRaydiumAccounts(txLogs.signature, connection);
         console.log("Tokens");
 
-        // const inputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenAAccount.toBase58() : tokens.tokenBAccount.toBase58();
-        // const outputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenBAccount.toBase58() : tokens.tokenAAccount.toBase58();
+        const inputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenAAccount.toBase58() : tokens.tokenBAccount.toBase58();
+        const outputToken = tokens.tokenAAccount.toBase58() === "So11111111111111111111111111111111111111112" ? tokens.tokenBAccount.toBase58() : tokens.tokenAAccount.toBase58();
 
-        // const swapConfig = {
-        //     executeSwap: true, // Send tx when true, simulate tx when false
-        //     useVersionedTransaction: true,
-        //     tokenAAmount: 0.0056, // Swap 0.01 SOL for USDT in this example
-        //     tokenAAddress: inputToken, // Token to swap for the other, SOL in this case
-        //     tokenBAddress: outputToken, // USDC address
-        //     maxLamports: 1500000, // Micro lamports for priority fee
-        //     direction: "in" as "in" | "out", // Swap direction: 'in' or 'out'
-        //     maxRetries: 20,
-        //     poolInfo: poolKeys
-        // };
+        const swapConfig = {
+            executeSwap: false, // Send tx when true, simulate tx when false
+            useVersionedTransaction: true,
+            tokenAAmount: 0.0056, // Swap 0.01 SOL for USDT in this example
+            tokenAAddress: inputToken, // Token to swap for the other, SOL in this case
+            tokenBAddress: outputToken, // USDC address
+            maxLamports: 1500000, // Micro lamports for priority fee
+            direction: "in" as "in" | "out", // Swap direction: 'in' or 'out'
+            maxRetries: 20,
+            poolInfo: poolKeys
+        };
 
-        // swap(swapConfig);
+        swap(swapConfig);
 
 
 
