@@ -362,23 +362,23 @@ const executeTransaction = async (ammId: string, swapAmountIn: number, tokenToBu
     }
     txn.add(swapIX);
 
-    const hash = await sendAndConfirmTransaction(connection, txn, [keyPair], {
-      skipPreflight: false,
-      preflightCommitment: "confirmed",
-    });
+    // const hash = await sendAndConfirmTransaction(connection, txn, [keyPair], {
+    //   skipPreflight: false,
+    //   preflightCommitment: "confirmed",
+    // });
 
 
 
-    // const simRes = false
-    //   // @ts-ignore
-    //   ? await raydiumSwap.simulateVersionedTransaction(txn as VersionedTransaction)
-    //   // @ts-ignore
-    //   : await raydiumSwap.simulateLegacyTransaction(txn as Transaction);
+    const simRes = true
+      // @ts-ignore
+      ? await raydiumSwap.simulateVersionedTransaction(txn as VersionedTransaction)
+      // @ts-ignore
+      : await raydiumSwap.simulateLegacyTransaction(txn as Transaction);
 
-    // console.log(simRes);
+    console.log(simRes);
 
     console.log("Transaction Completed Successfully 🎉🚀.");
-    console.log(`Explorer URL: https://solscan.io/tx/${hash}`);
+    // console.log(`Explorer URL: https://solscan.io/tx/${hash}`);
   } else {
     console.log(`Could not get PoolKeys for AMM: ${ammId}`);
   }
