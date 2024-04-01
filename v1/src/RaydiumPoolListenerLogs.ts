@@ -100,7 +100,7 @@ const swap = async (swapConfig) => {
 
 function subscribeToNewRaydiumPools(): void {
     connection.onLogs(new PublicKey(RAYDIUM_POOL_V4_PROGRAM_ID), async (txLogs: Logs) => {
-        console.log("Log entry found", new Date());
+        // console.log("Log entry found", new Date());
         if (seenTransactions.includes(txLogs.signature)) {
             return;
         }
@@ -109,9 +109,7 @@ function subscribeToNewRaydiumPools(): void {
         if (!findLogEntry('init_pc_amount', txLogs.logs)) {
             return; // If "init_pc_amount" is not in log entries then it's not LP initialization transaction
         }
-        console.log("New LP Found");
-        console.log(txLogs.signature);
-        return
+   
 
         /*
         if (!quoteMinPoolSizeAmount.isZero()) {
@@ -153,6 +151,7 @@ function subscribeToNewRaydiumPools(): void {
         };
 
         swap(swapConfig);
+        return
 
 
 
