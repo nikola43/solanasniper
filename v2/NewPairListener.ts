@@ -409,14 +409,14 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
     }
   }
 
-  // if (CHECK_IF_MINT_IS_RENOUNCED) {
-  //   const mintOption = await checkMintable(poolState.baseMint);
+  if (CHECK_IF_MINT_IS_RENOUNCED) {
+    const mintOption = await checkMintable(poolState.baseMint);
 
-  //   if (mintOption !== true) {
-  //     logger.warn({ mint: poolState.baseMint }, 'Skipping, owner can mint tokens!');
-  //     return;
-  //   }
-  // }
+    if (mintOption !== true) {
+      logger.warn({ mint: poolState.baseMint }, 'Skipping, owner can mint tokens!');
+      return;
+    }
+  }
 
   try {
 
