@@ -393,21 +393,21 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
   const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
   logger.info(`Processing pool: ${id.toString()} with ${poolSize.toFixed()} ${quoteToken.symbol} in liquidity`);
 
-  if (!quoteMinPoolSizeAmount.isZero()) {
+  // if (!quoteMinPoolSizeAmount.isZero()) {
 
 
-    if (poolSize.lt(quoteMinPoolSizeAmount)) {
-      logger.warn(
-        {
-          mint: poolState.baseMint,
-          pooled: `${poolSize.toFixed()} ${quoteToken.symbol}`,
-        },
-        `Skipping pool, smaller than ${quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
-        `Swap quote in amount: ${poolSize.toFixed()}`,
-      );
-      return;
-    }
-  }
+  //   if (poolSize.lt(quoteMinPoolSizeAmount)) {
+  //     logger.warn(
+  //       {
+  //         mint: poolState.baseMint,
+  //         pooled: `${poolSize.toFixed()} ${quoteToken.symbol}`,
+  //       },
+  //       `Skipping pool, smaller than ${quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+  //       `Swap quote in amount: ${poolSize.toFixed()}`,
+  //     );
+  //     return;
+  //   }
+  // }
 
   if (CHECK_IF_MINT_IS_RENOUNCED) {
     const mintOption = await checkMintable(poolState.baseMint);
